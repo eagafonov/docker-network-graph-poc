@@ -1,0 +1,3 @@
+[submodule "supermake"]
+	path = supermake
+	url = https://github.com/eagafonov/supermake
