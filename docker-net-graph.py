@@ -38,13 +38,11 @@ for net in sorted(docker_client.networks()):
 
     net_node_id = "net_%s" % (net_name,)
     
-    net_label_html = '<br/>'.join([s for s in ['net', net_name, subnet, gateway] if s != None])
+    net_label_html = '<br/>'.join([s for s in ['<font color="#77777"><i>network</i></font>', net_name, subnet, gateway] if s != None])
     
     dot.node(net_node_id, label="<%s>" % net_label_html, shape='note')
 
 
-    #pprint.pprint(net['Containers'])
-    
     for container_id, container in sorted(net['Containers'].iteritems()):
         print " * ", container['Name'], container['IPv4Address'], container['IPv6Address']
         
@@ -69,8 +67,6 @@ for net in sorted(docker_client.networks()):
         
         dot.edge(container_node_id, container_iface_id)
         dot.edge(container_iface_id, net_node_id)
-        
-    print
     
 print dot.source
 dot.render('dng.gv')
