@@ -2,14 +2,13 @@
 import os
 import json
 import argparse
+import random
 from docker import Client
 from graphviz import Graph
 
 
 def generate_graph(verbose: bool, file: str):
-    dot = Graph(comment='Docker Network Graph',
-                graph_attr=dict(rankdir="TB", packmode='graph', pack='true')
-                )
+    g = Graph(comment='Docker Network Graph', engine="fdp", format='png', graph_attr=dict(splines="true"))
 
     docker_client = Client(os.environ.get("DOCKER_HOST", "unix:///var/run/docker.sock"))
 
@@ -32,14 +31,15 @@ def generate_graph(verbose: bool, file: str):
         if verbose:
             print('|'.join(iface_labels))
 
-        dot.node(node_id,
-                 shape='record',
-                 label="{ %s | { %s } }" % (name, '|'.join(iface_labels)),
-                 fillcolor='#ff9999',
-                 style='filled')
+        g.node(node_id,
+               shape='record',
+               label="{ %s | { %s } }" % (name, '|'.join(iface_labels)),
+               fillcolor='#ff9999',
+               style='filled')
 
     for net in docker_client.networks():
         net_name = net['Name']
+        color = "#%06x" % random.randint(0, 0xFFFFFF)
 
         try:
             gateway = net['IPAM']['Config'][0]['Gateway']
@@ -58,11 +58,11 @@ def generate_graph(verbose: bool, file: str):
 
         net_label_html = '<br/>'.join([s for s in ['<font color="#777777"><i>network</i></font>', net_name, subnet, gateway] if s is not None])
 
-        dot.node(net_node_id,
-                 shape='record',
-                 label="{<gw_iface> %s| %s }" % (gateway, net_name),
-                 fillcolor='#99ff99',
-                 style='filled')
+        g.node(net_node_id,
+               shape='record',
+               label="{<gw_iface> %s| %s }" % (gateway, net_name),
+               fillcolor=color,
+               style='filled')
 
         for container_id, container in sorted(net['Containers'].items()):
             if verbose:
@@ -74,11 +74,11 @@ def generate_graph(verbose: bool, file: str):
 
             container_iface_ref = "%s:%s" % (container_node_id, container['EndpointID'])
 
-            dot.edge(container_iface_ref, net_node_id+":gw_iface")
+            g.edge(container_iface_ref, net_node_id+":gw_iface", color=color)
 
-    print(dot.source)
+    print(g.source)
     if file:
-        dot.render(file)
+        g.render(file)
 
 
 if __name__ == "__main__":
