@@ -78,7 +78,7 @@ def generate_graph(verbose: bool, file: str):
 
         net_node_id = "net_%s" % (net_name,)
 
-        label = "{<gw_iface> %s | %s  %s}" % (gateway, net_name, internal)
+        label = "{<gw_iface> %s | %s %s}" % (gateway, net_name, internal)
 
         g.node(net_node_id,
                shape='record',
