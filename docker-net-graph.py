@@ -64,21 +64,26 @@ def generate_graph(verbose: bool, file: str):
         except IndexError:
             gateway = None
 
+        internal = ""
         try:
             if net['Internal']:
-                internal = "| Internal"
-            else:
-                internal = ""
-
+                internal = "| Internal "
         except IndexError:
-            internal = ""
+            pass
+
+        isolated = ""
+        try:
+            if net["Options"]["com.docker.network.bridge.enable_icc"] == "false":
+                isolated = "| Containers isolated"
+        except KeyError:
+            pass
 
         if verbose:
             print("Network: %s %s gw:%s" % (net_name, internal, gateway))
 
         net_node_id = "net_%s" % (net_name,)
 
-        label = "{<gw_iface> %s | %s %s}" % (gateway, net_name, internal)
+        label = "{<gw_iface> %s | %s %s%s}" % (gateway, net_name, internal, isolated)
 
         g.node(net_node_id,
                shape='record',
