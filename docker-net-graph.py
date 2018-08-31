@@ -65,27 +65,31 @@ def generate_graph(verbose: bool, file: str):
             gateway = None
 
         try:
-            subnet = net['IPAM']['Config'][0]['Subnet']
+            if net['Internal']:
+                internal = "| Internal"
+            else:
+                internal = ""
+
         except IndexError:
-            subnet = None
+            internal = ""
 
         if verbose:
-            print("Network: %s %s gw:%s" % (net_name, subnet, gateway))
+            print("Network: %s %s gw:%s" % (net_name, internal, gateway))
 
         net_node_id = "net_%s" % (net_name,)
 
-        net_label_html = '<br/>'.join([s for s in ['<font color="#777777"><i>network</i></font>', net_name, subnet, gateway] if s is not None])
+        label = "{<gw_iface> %s | %s  %s}" % (gateway, net_name, internal)
 
         g.node(net_node_id,
                shape='record',
-               label="{<gw_iface> %s| %s }" % (gateway, net_name),
+               label=label,
                fillcolor=color,
-               style='filled')
+               style='filled'
+               )
 
         for container_id, container in sorted(net['Containers'].items()):
             if verbose:
                 dump_json(container)
-            if verbose:
                 print(" * ", container['Name'], container['IPv4Address'], container['IPv6Address'])
 
             container_node_id = 'container_%s' % container_id
