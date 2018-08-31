@@ -4,6 +4,9 @@ Visualize the relationship between Docker networks and containers
 as a neat graphviz graph.
 
 
+## Example
+![example graph](example.png)
+
 ## Usage
     usage: docker-net-graph.py [-h] [-v] [-o OUT]
 
