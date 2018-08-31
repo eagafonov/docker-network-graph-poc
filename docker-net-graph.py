@@ -6,9 +6,26 @@ import random
 from docker import Client
 from graphviz import Graph
 
+# colorlover.scales["12"]["qual"]["Paired"] converted to hex strings
+COLORS = ['#1f78b4', '#33a02c', '#e31a1c', '#ff7f00', '#6a3d9a', '#b15928', '#a6cee3', '#b2df8a', '#fb9a99', '#fdbf6f',
+          '#cab2d6', '#ffff99']
+i = 0
+
+
+def get_unique_color():
+    global i
+
+    if i < len(COLORS):
+        c = COLORS[i]
+        i += 1
+    else:
+        c = "#%06x".format(random.randint(0, 0xFFFFFF))
+    return c
+
 
 def generate_graph(verbose: bool, file: str):
-    g = Graph(comment='Docker Network Graph', engine="fdp", format='png', graph_attr=dict(splines="true"))
+    g = Graph(comment='Docker Network Graph', engine="fdp", format='png',
+              graph_attr=dict(packed="true", splines="true"))
 
     docker_client = Client(os.environ.get("DOCKER_HOST", "unix:///var/run/docker.sock"))
 
@@ -37,9 +54,10 @@ def generate_graph(verbose: bool, file: str):
                fillcolor='#ff9999',
                style='filled')
 
+    i = 0
     for net in docker_client.networks():
         net_name = net['Name']
-        color = "#%06x" % random.randint(0, 0xFFFFFF)
+        color = get_unique_color()
 
         try:
             gateway = net['IPAM']['Config'][0]['Gateway']
