@@ -26,7 +26,7 @@ This will end up generating a .pdf file containing the graph.
 If you want to generate a graph for a remote system you can also easily
 run this script inside a pre-built docker container:
     
-    docker run -v /var/run/docker.sock:/var/run/docker.sock leoverto/docker-net-graph
+    docker run -v /var/run/docker.sock:/var/run/docker.sock leoverto/docker-network-graph
 
 This will just generate and output the graph. You can then run
 `dot -Tpdf -o out.pdf`or `dot -Tpng -o out.png` on a system with
