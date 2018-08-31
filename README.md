@@ -5,7 +5,7 @@ as a neat graphviz graph.
 
 
 ## Example
-![example graph](example.png)
+![example graph](https://raw.githubusercontent.com/LeoVerto/docker-network-graph/master/example.png)
 
 ## Usage
     usage: docker-net-graph.py [-h] [-v] [-o OUT]
@@ -39,3 +39,6 @@ and finally CTRL+C to generate the file.
 
 Alternatively, you can use [this website](https://dreampuf.github.io/GraphvizOnline/) for an online version of Graphviz.
 The recommended render engine is `fdp`.
+
+For more advanced use cases you can append arguments to the `docker run`
+command as if you were running it in a local shell.
