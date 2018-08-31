@@ -1,4 +1,3 @@
-/sandbox
-/*.gv
-/*.pdf
+*.gv
+*.pdf
 .idea
