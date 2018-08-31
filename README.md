@@ -37,4 +37,5 @@ This will just generate and output the graph. You can then run
 graphviz installed, paste the previous output there, press enter
 and finally CTRL+C to generate the file.
 
-Alternatively, you can use [this website](http://www.webgraphviz.com) for an online version of Graphviz.
+Alternatively, you can use [this website](https://dreampuf.github.io/GraphvizOnline/) for an online version of Graphviz.
+The recommended render engine is `fdp`.
