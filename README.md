@@ -29,6 +29,6 @@ run this script inside a pre-built docker container:
     docker run -v /var/run/docker.sock:/var/run/docker.sock leoverto/docker-network-graph
 
 This will just generate and output the graph. You can then run
-`dot -Tpdf -o out.pdf`or `dot -Tpng -o out.png` on a system with
+`fdp -Tpdf -o out.pdf`or `fdp -Tpng -o out.png` on a system with
 graphviz installed, paste the previous output there, press enter
 and finally CTRL+C to generate the file.
