@@ -1,6 +1,7 @@
 # Docker Network Graph
 
-Sample python script to draw graph of Docker networks and containers
+Visualize the relationship between Docker networks and containers
+as a neat graphviz graph.
 
 
 ## Usage
