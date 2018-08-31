@@ -7,7 +7,7 @@ from docker import Client
 from graphviz import Graph
 
 # colorlover.scales["12"]["qual"]["Paired"] converted to hex strings
-COLORS = ['#1f78b4', '#33a02c', '#e31a1c', '#ff7f00', '#6a3d9a', '#b15928', '#a6cee3', '#b2df8a', '#fb9a99', '#fdbf6f',
+COLORS = ['#1f78b4', '#33a02c', '#e31a1c', '#ff7f00', '#6a3d9a', '#b15928', '#a6cee3', '#b2df8a', '#fdbf6f',
           '#cab2d6', '#ffff99']
 i = 0
 
@@ -24,8 +24,8 @@ def get_unique_color():
 
 
 def generate_graph(verbose: bool, file: str):
-    g = Graph(comment='Docker Network Graph', engine="fdp", format='png',
-              graph_attr=dict(packed="true", splines="true"))
+    g = Graph(comment='Docker Network Graph', engine="sfdp", format='png',
+              graph_attr=dict(splines="true"))
 
     docker_client = Client(os.environ.get("DOCKER_HOST", "unix:///var/run/docker.sock"))
 
@@ -33,7 +33,7 @@ def generate_graph(verbose: bool, file: str):
         print(json.dumps(obj, indent=4))
 
     for c in docker_client.containers():
-        name = c['Names'][0]
+        name = c['Names'][0][1:]
         container_id = c['Id']
 
         node_id = 'container_%s' % container_id
@@ -52,10 +52,10 @@ def generate_graph(verbose: bool, file: str):
                shape='record',
                label="{ %s | { %s } }" % (name, '|'.join(iface_labels)),
                fillcolor='#ff9999',
-               style='filled')
+               style='filled'
+               )
 
-    i = 0
-    for net in docker_client.networks():
+    for net in sorted(docker_client.networks(), key=lambda k: k["Name"]):
         net_name = net['Name']
         color = get_unique_color()
 
