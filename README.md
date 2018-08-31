@@ -7,6 +7,7 @@ Sample python script to draw graph of Docker networks and containers
 Install/run
 ===========
 
-    #> git clone --recursive https://github.com/eagafonov/docker-network-graph-poc.git
-    #> make install-requirements
-    #> make build-graph
+    #> git clone https://github.com/LeoVerto/docker-network-graph-poc.git
+    #> cd docker-network-graph-poc
+    #> pipenv install
+    #> pipenv run python docker-net-graph.py
