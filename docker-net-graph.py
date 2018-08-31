@@ -13,7 +13,7 @@ dot = Graph(comment='Docker Network Graph',
 docker_client = Client(os.environ.get("DOCKER_HOST", "unix:///var/run/docker.sock"))
 
 def dump_json(obj):
-    print json.dumps(obj, indent=4)
+    print(json.dumps(obj, indent=4))
 
 for c in sorted(docker_client.containers()):
     name = c['Names'][0]
@@ -23,12 +23,12 @@ for c in sorted(docker_client.containers()):
     
     iface_labels = []
     
-    for net_name, net_info in c['NetworkSettings']['Networks'].iteritems():
+    for net_name, net_info in c['NetworkSettings']['Networks'].items():
         label_iface = "<%s> %s" % (net_info['EndpointID'], net_info['IPAddress'])
         
         iface_labels.append(label_iface)
         
-    print '|'.join(iface_labels)
+    print('|'.join(iface_labels))
         
     
     dot.node(node_id,
@@ -39,14 +39,9 @@ for c in sorted(docker_client.containers()):
     
     
 
-for net in sorted(docker_client.networks()):
-    #print "Net"
+for net in docker_client.networks():
     net_name = net['Name']
     
-    #subnet = net['IPAM']['Config']['Subnet']
-    
-    #dump_json(net)
-
     try:
         gateway = net['IPAM']['Config'][0]['Gateway']
     except IndexError:
@@ -57,7 +52,7 @@ for net in sorted(docker_client.networks()):
     except IndexError:
         subnet = None
 
-    print "Network: %s %s gw:%s" % ( net_name, subnet,gateway)
+    print("Network: %s %s gw:%s" % ( net_name, subnet,gateway))
 
     net_node_id = "net_%s" % (net_name,)
     
@@ -70,9 +65,9 @@ for net in sorted(docker_client.networks()):
              style='filled')
 
 
-    for container_id, container in sorted(net['Containers'].iteritems()):
+    for container_id, container in sorted(net['Containers'].items()):
         dump_json(container)
-        print " * ", container['Name'], container['IPv4Address'], container['IPv6Address']
+        print(" * ", container['Name'], container['IPv4Address'], container['IPv6Address'])
         
         container_node_id = 'container_%s' % container_id
         
@@ -80,6 +75,6 @@ for net in sorted(docker_client.networks()):
         
         dot.edge(container_iface_ref, net_node_id+":gw_iface")
     
-print dot.source
+print(dot.source)
 dot.render('dng.gv')
     
