@@ -61,14 +61,15 @@ def generate_graph(verbose: bool, file: str):
 
         try:
             gateway = net['IPAM']['Config'][0]['Gateway']
-        except IndexError:
-            gateway = None
+        except KeyError:
+            # This network doesn't seem to be used, skip it
+            continue
 
         internal = ""
         try:
             if net['Internal']:
                 internal = "| Internal "
-        except IndexError:
+        except KeyError:
             pass
 
         isolated = ""
