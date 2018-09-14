@@ -61,7 +61,7 @@ def generate_graph(verbose: bool, file: str):
 
         try:
             gateway = net['IPAM']['Config'][0]['Gateway']
-        except KeyError:
+        except (KeyError, IndexError):
             # This network doesn't seem to be used, skip it
             continue
 
