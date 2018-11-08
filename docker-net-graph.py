@@ -93,16 +93,17 @@ def generate_graph(verbose: bool, file: str):
                style='filled'
                )
 
-        for container_id, container in sorted(net['Containers'].items()):
-            if verbose:
-                dump_json(container)
-                print(" * ", container['Name'], container['IPv4Address'], container['IPv6Address'])
+        if net['Containers']:
+            for container_id, container in sorted(net['Containers'].items()):
+                if verbose:
+                    dump_json(container)
+                    print(" * ", container['Name'], container['IPv4Address'], container['IPv6Address'])
 
-            container_node_id = 'container_%s' % container_id
+                container_node_id = 'container_%s' % container_id
 
-            container_iface_ref = "%s:%s" % (container_node_id, container['EndpointID'])
+                container_iface_ref = "%s:%s" % (container_node_id, container['EndpointID'])
 
-            g.edge(container_iface_ref, net_node_id+":gw_iface", color=color)
+                g.edge(container_iface_ref, net_node_id+":gw_iface", color=color)
 
     print(g.source)
     if file:
