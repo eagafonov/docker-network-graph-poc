@@ -1,4 +1,5 @@
 *.gv
 *.pdf
 *.png
+*.svg
 .idea

@@ -1,10 +1,13 @@
 #!/usr/bin/python3
+
 import os
-import json
 import argparse
 import random
-from docker import Client
+import docker
+import typing
+from dataclasses import dataclass
 from graphviz import Graph
+from graphviz.backend import FORMATS
 
 # colorlover.scales["12"]["qual"]["Paired"] converted to hex strings
 COLORS = ["#1f78b4", "#33a02c", "#e31a1c", "#ff7f00", "#6a3d9a", "#b15928", "#a6cee3", "#b2df8a", "#fdbf6f",
@@ -12,7 +15,36 @@ COLORS = ["#1f78b4", "#33a02c", "#e31a1c", "#ff7f00", "#6a3d9a", "#b15928", "#a6
 i = 0
 
 
-def get_unique_color():
+@dataclass
+class Network:
+    name: str
+    gateway: str
+    internal: bool
+    isolated: bool
+    color: str
+
+
+@dataclass
+class Interface:
+    endpoint_id: str
+    address: str
+
+
+@dataclass
+class Container:
+    container_id: str
+    name: str
+    interfaces: typing.List[Interface]
+
+
+@dataclass
+class Link:
+    container_id: str
+    endpoint_id: str
+    network_name: str
+
+
+def get_unique_color() -> str:
     global i
 
     if i < len(COLORS):
@@ -25,98 +57,135 @@ def get_unique_color():
     return c
 
 
-def generate_graph(verbose: bool, file: str):
-    g = Graph(comment="Docker Network Graph", engine="sfdp", format="png",
-              graph_attr=dict(splines="true"))
+def get_networks(client: docker.DockerClient, verbose: bool) -> typing.Dict[str, Network]:
+    networks: typing.Dict[str, Network] = {}
 
-    docker_client = Client(os.environ.get("DOCKER_HOST", "unix:///var/run/docker.sock"))
-
-    def dump_json(obj):
-        print(json.dumps(obj, indent=4))
-
-    for c in docker_client.containers():
-        name = c["Names"][0][1:]
-        container_id = c["Id"]
-
-        node_id = f"container_{container_id}"
-
-        iface_labels = []
-
-        for net_name, net_info in c["NetworkSettings"]["Networks"].items():
-            label_iface = f"<{net_info['EndpointID']}> {net_info['IPAddress']}"
-
-            iface_labels.append(label_iface)
-
-        labels = "|".join(iface_labels)
-        if verbose:
-            print(labels)
-
-        g.node(node_id,
-               shape="record",
-               label=f"{{ {name} | { {labels} } }}",
-               fillcolor="#ff9999",
-               style="filled"
-               )
-
-    for net in sorted(docker_client.networks(), key=lambda k: k["Name"]):
-        net_name = net["Name"]
-        color = get_unique_color()
-
+    for net in sorted(client.networks.list(), key=lambda k: k.name):
         try:
-            gateway = net["IPAM"]["Config"][0]["Gateway"]
+            gateway = net.attrs["IPAM"]["Config"][0]["Gateway"]
         except (KeyError, IndexError):
             # This network doesn't seem to be used, skip it
             continue
 
-        internal = ""
+        internal = False
         try:
-            if net["Internal"]:
-                internal = "| Internal"
+            if net.attrs["Internal"]:
+                internal = True
         except KeyError:
             pass
 
-        isolated = ""
+        isolated = False
         try:
-            if net["Options"]["com.docker.network.bridge.enable_icc"] == "false":
-                isolated = "| Containers isolated"
+            if net.attrs["Options"]["com.docker.network.bridge.enable_icc"] == "false":
+                isolated = True
         except KeyError:
             pass
 
         if verbose:
-            print(f"Network: {net_name} {internal} gw:{gateway}")
+            print(f"Network: {net.name} {'internal' if internal else ''} {'isolated' if isolated else ''} gw:{gateway}")
 
-        net_node_id = f"net_{net_name}"
+        color = get_unique_color()
+        networks[net.name] = Network(net.name, gateway, internal, isolated, color)
 
-        label = f"{{<gw_iface> {gateway} | {net_name} {internal} {isolated}}}"
+    return networks
 
-        g.node(net_node_id,
-               shape="record",
-               label=label,
-               fillcolor=color,
-               style="filled"
-               )
 
-        if net["Containers"]:
-            for container_id, container in sorted(net["Containers"].items()):
-                if verbose:
-                    dump_json(container)
-                    print(" * ", container["Name"], container["IPv4Address"], container["IPv6Address"])
+def get_containers(client: docker.DockerClient, verbose: bool) -> (typing.List[Container], typing.List[Link]):
+    containers: typing.List[Container] = []
+    links: typing.List[Link] = []
 
-                container_node_id = f"container_{container_id}"
+    for container in client.containers.list():
+        interfaces: typing.List[Interface] = []
 
-                container_iface_ref = f"{container_node_id}:{container['EndpointID']}"
+        # Iterate over container interfaces
+        for net_name, net_info in container.attrs["NetworkSettings"]["Networks"].items():
+            endpoint_id = net_info["EndpointID"]
 
-                g.edge(container_iface_ref, f"{net_node_id}:gw_iface", color=color)
+            interfaces.append(Interface(endpoint_id, net_info['IPAddress']))
+            links.append(Link(container.id, endpoint_id, net_name))
 
-    print(g.source)
+        if verbose:
+            print(f"Container: {container.name} {''.join([iface.address for iface in interfaces])}")
+
+        containers.append(Container(container.id, container.name, interfaces))
+
+    return containers, links
+
+
+def draw_network(g: Graph, net: Network):
+    label = f"{{<gw_iface> {net.gateway} | {net.name}"
+    if net.internal:
+        label += " | Internal"
+    if net.isolated:
+        label += " | Containers isolated"
+    label += "}"
+
+    g.node(f"network_{net.name}",
+           shape="record",
+           label=label,
+           fillcolor=net.color,
+           style="filled"
+           )
+
+
+def draw_container(g: Graph, c: Container):
+    iface_labels = [f"<{iface.endpoint_id}> {iface.address}" for iface in c.interfaces]
+
+    label = f"{{ {c.name} | {{ {'|'.join(iface_labels)} }} }}"
+
+    g.node(f"container_{c.container_id}",
+           shape="record",
+           label=label,
+           fillcolor="#ff9999",
+           style="filled"
+           )
+
+
+def draw_link(g: Graph, networks: typing.Dict[str, Network], link: Link):
+    g.edge(f"container_{link.container_id}:{link.endpoint_id}",
+           f"network_{link.network_name}",
+           color=networks[link.network_name].color
+           )
+
+
+def generate_graph(verbose: bool, file: str):
+    docker_client = docker.from_env()
+
+    networks = get_networks(docker_client, verbose)
+    containers, links = get_containers(docker_client, verbose)
+
     if file:
-        g.render(file)
+        base, ext = os.path.splitext(file)
+        g = Graph(comment="Docker Network Graph", engine="sfdp", format=ext[1:], graph_attr=dict(splines="true"))
+    else:
+        g = Graph(comment="Docker Network Graph", engine="sfdp", graph_attr=dict(splines="true"))
+
+    for _, network in networks.items():
+        draw_network(g, network)
+
+    for container in containers:
+        draw_container(g, container)
+
+    for link in links:
+        draw_link(g, networks, link)
+
+    if file:
+        g.render(base)
+    else:
+        print(g.source)
+
+
+def graphviz_output_file(filename: str):
+    ext = os.path.splitext(filename)[1][1:]
+    if ext.lower() not in FORMATS:
+        raise argparse.ArgumentTypeError("Must be valid graphviz output format")
+    return filename
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate docker network graph.")
     parser.add_argument("-v", "--verbose", help="Verbose output", action="store_true")
-    parser.add_argument("-o", "--out", help="Write output to file", type=str)
+    parser.add_argument("-o", "--out", help="Write output to file", type=graphviz_output_file)
     args = parser.parse_args()
 
     generate_graph(args.verbose, args.out)
