@@ -183,7 +183,7 @@ def graphviz_output_file(filename: str):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Generate docker network graph.")
+    parser = argparse.ArgumentParser(description="Visualize docker networks.")
     parser.add_argument("-v", "--verbose", help="Verbose output", action="store_true")
     parser.add_argument("-o", "--out", help="Write output to file", type=graphviz_output_file)
     args = parser.parse_args()
