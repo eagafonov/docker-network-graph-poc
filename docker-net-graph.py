@@ -7,8 +7,8 @@ from docker import Client
 from graphviz import Graph
 
 # colorlover.scales["12"]["qual"]["Paired"] converted to hex strings
-COLORS = ['#1f78b4', '#33a02c', '#e31a1c', '#ff7f00', '#6a3d9a', '#b15928', '#a6cee3', '#b2df8a', '#fdbf6f',
-          '#cab2d6', '#ffff99']
+COLORS = ["#1f78b4", "#33a02c", "#e31a1c", "#ff7f00", "#6a3d9a", "#b15928", "#a6cee3", "#b2df8a", "#fdbf6f",
+          "#cab2d6", "#ffff99"]
 i = 0
 
 
@@ -19,12 +19,14 @@ def get_unique_color():
         c = COLORS[i]
         i += 1
     else:
+        # Generate random color if we've already used the 12 preset ones
         c = "#%06x".format(random.randint(0, 0xFFFFFF))
+
     return c
 
 
 def generate_graph(verbose: bool, file: str):
-    g = Graph(comment='Docker Network Graph', engine="sfdp", format='png',
+    g = Graph(comment="Docker Network Graph", engine="sfdp", format="png",
               graph_attr=dict(splines="true"))
 
     docker_client = Client(os.environ.get("DOCKER_HOST", "unix:///var/run/docker.sock"))
@@ -33,42 +35,43 @@ def generate_graph(verbose: bool, file: str):
         print(json.dumps(obj, indent=4))
 
     for c in docker_client.containers():
-        name = c['Names'][0][1:]
-        container_id = c['Id']
+        name = c["Names"][0][1:]
+        container_id = c["Id"]
 
-        node_id = 'container_%s' % container_id
+        node_id = f"container_{container_id}"
 
         iface_labels = []
 
-        for net_name, net_info in c['NetworkSettings']['Networks'].items():
-            label_iface = "<%s> %s" % (net_info['EndpointID'], net_info['IPAddress'])
+        for net_name, net_info in c["NetworkSettings"]["Networks"].items():
+            label_iface = f"<{net_info['EndpointID']}> {net_info['IPAddress']}"
 
             iface_labels.append(label_iface)
 
+        labels = "|".join(iface_labels)
         if verbose:
-            print('|'.join(iface_labels))
+            print(labels)
 
         g.node(node_id,
-               shape='record',
-               label="{ %s | { %s } }" % (name, '|'.join(iface_labels)),
-               fillcolor='#ff9999',
-               style='filled'
+               shape="record",
+               label=f"{{ {name} | { {labels} } }}",
+               fillcolor="#ff9999",
+               style="filled"
                )
 
     for net in sorted(docker_client.networks(), key=lambda k: k["Name"]):
-        net_name = net['Name']
+        net_name = net["Name"]
         color = get_unique_color()
 
         try:
-            gateway = net['IPAM']['Config'][0]['Gateway']
+            gateway = net["IPAM"]["Config"][0]["Gateway"]
         except (KeyError, IndexError):
             # This network doesn't seem to be used, skip it
             continue
 
         internal = ""
         try:
-            if net['Internal']:
-                internal = "| Internal "
+            if net["Internal"]:
+                internal = "| Internal"
         except KeyError:
             pass
 
@@ -80,30 +83,30 @@ def generate_graph(verbose: bool, file: str):
             pass
 
         if verbose:
-            print("Network: %s %s gw:%s" % (net_name, internal, gateway))
+            print(f"Network: {net_name} {internal} gw:{gateway}")
 
-        net_node_id = "net_%s" % (net_name,)
+        net_node_id = f"net_{net_name}"
 
-        label = "{<gw_iface> %s | %s %s%s}" % (gateway, net_name, internal, isolated)
+        label = f"{{<gw_iface> {gateway} | {net_name} {internal} {isolated}}}"
 
         g.node(net_node_id,
-               shape='record',
+               shape="record",
                label=label,
                fillcolor=color,
-               style='filled'
+               style="filled"
                )
 
-        if net['Containers']:
-            for container_id, container in sorted(net['Containers'].items()):
+        if net["Containers"]:
+            for container_id, container in sorted(net["Containers"].items()):
                 if verbose:
                     dump_json(container)
-                    print(" * ", container['Name'], container['IPv4Address'], container['IPv6Address'])
+                    print(" * ", container["Name"], container["IPv4Address"], container["IPv6Address"])
 
-                container_node_id = 'container_%s' % container_id
+                container_node_id = f"container_{container_id}"
 
-                container_iface_ref = "%s:%s" % (container_node_id, container['EndpointID'])
+                container_iface_ref = f"{container_node_id}:{container['EndpointID']}"
 
-                g.edge(container_iface_ref, net_node_id+":gw_iface", color=color)
+                g.edge(container_iface_ref, f"{net_node_id}:gw_iface", color=color)
 
     print(g.source)
     if file:
