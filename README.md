@@ -52,4 +52,4 @@ command as if you were running it in a local shell.
 If you'd like to contribute to this project, there is a sample docker-compose file
 using dummy containers in `test`.
 
-You can deploy it using `docker-compose -f test/docker-compose.yml up -d`
+You can deploy it using `docker-compose -f test/docker-compose.yml up -d`.

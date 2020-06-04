@@ -28,6 +28,7 @@ class Network:
 class Interface:
     endpoint_id: str
     address: str
+    aliases: typing.List[str]
 
 
 @dataclass
@@ -103,7 +104,14 @@ def get_containers(client: docker.DockerClient, verbose: bool) -> (typing.List[C
         for net_name, net_info in container.attrs["NetworkSettings"]["Networks"].items():
             endpoint_id = net_info["EndpointID"]
 
-            interfaces.append(Interface(endpoint_id, net_info['IPAddress']))
+            aliases = []
+            if net_info["Aliases"]:
+                for alias in net_info["Aliases"]:
+                    # The aliases always contain the shortened container id and container name
+                    if alias != container.id[:12] and alias != container.name:
+                        aliases.append(alias)
+
+            interfaces.append(Interface(endpoint_id, net_info['IPAddress'], aliases))
             links.append(Link(container.id, endpoint_id, net_name))
 
         if verbose:
@@ -131,9 +139,18 @@ def draw_network(g: Graph, net: Network):
 
 
 def draw_container(g: Graph, c: Container):
-    iface_labels = [f"<{iface.endpoint_id}> {iface.address}" for iface in c.interfaces]
+    iface_labels = []
 
-    label = f"{{ {c.name} | {{ {'|'.join(iface_labels)} }} }}"
+    for iface in c.interfaces:
+        iface_label = "{"
+
+        for alias in iface.aliases:
+            iface_label += f" {alias} |"
+
+        iface_label += f"<{iface.endpoint_id}> {iface.address} }}"
+        iface_labels.append(iface_label)
+
+    label = f"{{ {c.name} | {{ {' | '.join(iface_labels)} }} }}"
 
     g.node(f"container_{c.container_id}",
            shape="record",
