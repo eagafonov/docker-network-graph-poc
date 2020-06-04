@@ -87,6 +87,8 @@ def get_networks(client: docker.DockerClient, verbose: bool) -> typing.Dict[str,
         color = get_unique_color()
         networks[net.name] = Network(net.name, gateway, internal, isolated, color)
 
+    networks["host"] = Network("host", "0.0.0.0", False, False, "#808080")
+
     return networks
 
 
@@ -167,7 +169,8 @@ def generate_graph(verbose: bool, file: str):
         draw_container(g, container)
 
     for link in links:
-        draw_link(g, networks, link)
+        if link.network_name != "none":
+            draw_link(g, networks, link)
 
     if file:
         g.render(base)
