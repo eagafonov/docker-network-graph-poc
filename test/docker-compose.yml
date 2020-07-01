@@ -22,6 +22,7 @@ services:
         - network_a
         - network_b
         - network_c
+        - no_gateway
     host_service:
       container_name: host_service
       image: leoverto/dummy-image
@@ -36,3 +37,11 @@ networks:
   network_b:
   network_c:
   empty_network:
+  no_gateway:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: br-no-gateway
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.22.1.0/24

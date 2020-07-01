@@ -63,7 +63,7 @@ def get_networks(client: docker.DockerClient, verbose: bool) -> typing.Dict[str,
 
     for net in sorted(client.networks.list(), key=lambda k: k.name):
         try:
-            gateway = net.attrs["IPAM"]["Config"][0]["Gateway"]
+            gateway = net.attrs["IPAM"]["Config"][0]["Subnet"]
         except (KeyError, IndexError):
             # This network doesn't seem to be used, skip it
             continue
