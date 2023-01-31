@@ -1,3 +1,5 @@
-/sandbox
-/*.gv
-/*.pdf
+*.gv
+*.pdf
+*.png
+*.svg
+.idea
